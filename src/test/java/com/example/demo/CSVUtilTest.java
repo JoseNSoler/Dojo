@@ -31,7 +31,7 @@ public class CSVUtilTest {
         );
 
         System.out.println(distinctElements.size());
-        assert distinctElements.size() == 9;
+        assert distinctElements.size() == 14;
 
     }
 
@@ -45,6 +45,7 @@ public class CSVUtilTest {
                 .filter(correo -> correo.email.contains("@gmail"))
                 .distinct()
                 .collectMultimap(Correo::getId);
+
 
 
         System.out.println("Filtrar por dominio @gmail");
@@ -66,6 +67,8 @@ public class CSVUtilTest {
         Integer mapCorreos = list.stream().map(correo -> correo).collect(Collectors.toList()).size();
 
         System.out.println(mapCorreos);
+
+        Assertions.assertEquals(20, mapCorreos);
     }
 
     @Test
@@ -86,6 +89,8 @@ public class CSVUtilTest {
         int occurrencesGoogle = Collections.frequency(list2, "gmail.com");
         System.out.println("El correo @gmail.com se repite " + occurrencesGoogle);
 
+        Assertions.assertEquals(12, occurrencesYahoo);
+        Assertions.assertEquals(1, occurrencesGoogle);
 
     }
 
@@ -106,8 +111,6 @@ public class CSVUtilTest {
         Mono<Map<Integer, Collection<Correo>>> listFilter = listFlux
                 .filter(correo -> correo.email.contains(regexPattern))
                 .collectMultimap(Correo::getId);
-
-
 
 
         listMap.forEach((correos) ->
