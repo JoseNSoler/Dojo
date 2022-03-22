@@ -1,43 +1,35 @@
 package com.example.demo;
 
-import com.opencsv.CSVReader;
-import com.opencsv.exceptions.CsvException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class CSVUtilTest {
 
     @Test
     void converterData(){
-        List<Player> list = CsvUtilFile.getPlayers();
+        List<Correo> list = CsvUtilFile.getPlayers();
         assert list.size() == 18207;
     }
 
     @Test
     void stream_filtrarJugadoresMayoresA35(){
-        List<Player> list = CsvUtilFile.getPlayers();
-        Map<String, List<Player>> listFilter = list.parallelStream()
-                .filter(player -> player.age >= 35)
-                .map(player -> {
-                    player.name = player.name.toUpperCase(Locale.ROOT);
-                    return player;
+        List<Correo> list = CsvUtilFile.getPlayers();
+        Map<String, List<Correo>> listFilter = list.parallelStream()
+                .filter(correo -> correo.age >= 35)
+                .map(correo -> {
+                    correo.name = correo.name.toUpperCase(Locale.ROOT);
+                    return correo;
                 })
-                .flatMap(playerA -> list.parallelStream()
-                        .filter(playerB -> playerA.club.equals(playerB.club))
+                .flatMap(correoA -> list.parallelStream()
+                        .filter(correoB -> correoA.club.equals(correoB.club))
                 )
                 .distinct()
-                .collect(Collectors.groupingBy(Player::getClub));
+                .collect(Collectors.groupingBy(Correo::getClub));
 
         assert listFilter.size() == 322;
     }
@@ -45,21 +37,21 @@ public class CSVUtilTest {
 
     @Test
     void reactive_filtrarJugadoresMayoresA35(){
-        List<Player> list = CsvUtilFile.getPlayers();
-        Flux<Player> listFlux = Flux.fromStream(list.parallelStream()).cache();
-        Mono<Map<String, Collection<Player>>> listFilter = listFlux
-                .filter(player -> player.age >= 35)
-                .map(player -> {
-                    player.name = player.name.toUpperCase(Locale.ROOT);
-                    return player;
+        List<Correo> list = CsvUtilFile.getPlayers();
+        Flux<Correo> listFlux = Flux.fromStream(list.parallelStream()).cache();
+        Mono<Map<String, Collection<Correo>>> listFilter = listFlux
+                .filter(correo -> correo.age >= 35)
+                .map(correo -> {
+                    correo.name = correo.name.toUpperCase(Locale.ROOT);
+                    return correo;
                 })
                 .buffer(100)
                 .flatMap(playerA -> listFlux
-                         .filter(playerB -> playerA.stream()
-                                 .anyMatch(a ->  a.club.equals(playerB.club)))
+                         .filter(correoB -> playerA.stream()
+                                 .anyMatch(a ->  a.club.equals(correoB.club)))
                 )
                 .distinct()
-                .collectMultimap(Player::getClub);
+                .collectMultimap(Correo::getClub);
 
         assert listFilter.block().size() == 322;
     }
@@ -67,22 +59,22 @@ public class CSVUtilTest {
     // Test para encontrar jugadores mayores de 34 años pertenecientes a cierto club
     @Test
     void reactive_filtrarJugadoresMayoresA34(){
-        List<Player> list = CsvUtilFile.getPlayers();
-        Flux<Player> listFlux = Flux.fromStream(list.parallelStream()).cache();
+        List<Correo> list = CsvUtilFile.getPlayers();
+        Flux<Correo> listFlux = Flux.fromStream(list.parallelStream()).cache();
 
-        Mono<Map<String, Collection<Player>>> listFilter = listFlux
-                .filter(player -> player.club.equals("Athletic Club de Bilbao") && player.getAge() >= 34)
+        Mono<Map<String, Collection<Correo>>> listFilter = listFlux
+                .filter(correo -> correo.club.equals("Athletic Club de Bilbao") && correo.getAge() >= 34)
                 .distinct()
-                .collectMultimap(Player::getClub);
+                .collectMultimap(Correo::getClub);
 
         System.out.println(listFilter.block().size());
 
         listFilter.block().forEach((equipo, players) -> {
-            players.forEach(player -> {
-                System.out.println("Nombre: " + player.getName() + "\nEdad: " + player.getAge() + " años" +"\nClub: " + player.getClub());
-                assert player.club.equals("Athletic Club de Bilbao");
+            players.forEach(correo -> {
+                System.out.println("Nombre: " + correo.getName() + "\nEdad: " + correo.getAge() + " años" +"\nClub: " + correo.getClub());
+                assert correo.club.equals("Athletic Club de Bilbao");
 
-                Assertions.assertEquals(37, player.getAge());
+                Assertions.assertEquals(37, correo.getAge());
             });
         });
 
@@ -91,28 +83,31 @@ public class CSVUtilTest {
     //
     @Test
     void reactive_filtrarPorNacionYFiltrarRanked() {
-        List<Player> list = CsvUtilFile.getPlayers();
-        Flux<Player> listFlux = Flux.fromStream(list.parallelStream()).cache();
-        Mono<Map<String, Collection<Player>>> listFilter = listFlux
+        List<Correo> list = CsvUtilFile.getPlayers();
+        Flux<Correo> listFlux = Flux.fromStream(list.parallelStream()).cache();
+        Mono<Map<String, Collection<Correo>>> listFilter = listFlux
                 .buffer(100)
                 .flatMap(player1 -> listFlux
-                        .filter(player2 -> player1.stream()
-                                .anyMatch(a -> a.getNational().equals(player2.getNational())))
+                        .filter(correo2 -> player1.stream()
+                                .anyMatch(a -> a.getNational().equals(correo2.getNational())))
                 ).distinct()
-                .sort((k, player) -> player.getWinners())
-                .collectMultimap(Player::getNational);
+                .sort((k, correo) -> correo.getWinners())
+                .collectMultimap(Correo::getNational);
 
         System.out.println("Filtro Por naciones: ");
         System.out.println(listFilter.block().size());
         listFilter.block().forEach((pais, players) -> {
             System.out.println("Pais: " + pais + "\n{");
-            players.forEach(player -> {
-                System.out.println("- Nombre: " + player.getName() +
-                        "\n- victorias: " + player.getWinners() + "\n- Club: " + player.getClub());
+            players.forEach(correo -> {
+                System.out.println("- Nombre: " + correo.getName() +
+                        "\n- victorias: " + correo.getWinners() + "\n- Club: " + correo.getClub());
             });
             System.out.println("}");
         });
     }
+
+
+
 
 
 
