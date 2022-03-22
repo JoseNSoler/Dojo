@@ -59,6 +59,40 @@ public class CSVUtilTest {
 
     }
 
+    @Test
+    void stream_saberTamaño(){
+        List<Correo> list = CsvUtilFile.getPlayers();
+
+        Integer mapCorreos = list.stream().map(correo -> correo).collect(Collectors.toList()).size();
+
+        System.out.println(mapCorreos);
+    }
+
+    @Test
+    void stream_saberCorreo(){
+        List<Correo> list = CsvUtilFile.getPlayers();
+
+        List<String> list2 = list.stream().map(correo -> correo.getEmail().split("@", 1)[0]).collect(Collectors.toList());
+
+        ArrayList<String> listEmail = new ArrayList<String>();
+        listEmail.addAll(list2);
+
+
+        Map<String, Integer> hm = new HashMap<String, Integer>();
+
+        for (String i : listEmail) {
+            Integer j = hm.get(i);
+            hm.put(i, (j == null) ? 1 : j + 1);
+        }
+
+        for (Map.Entry<String, Integer> val : hm.entrySet()) {
+            System.out.println("Element " + val.getKey() + " "
+                    + "occurs"
+                    + ": " + val.getValue() + " times");
+        }
+
+    }
+
 
     @Test
     void stream_contieneArrobaDominio(){
@@ -67,20 +101,22 @@ public class CSVUtilTest {
 
 
         List<Correo> list = CsvUtilFile.getPlayers();
+
+        List<String> listMap = list.stream().map(correo -> correo.getEmail()).filter(correo -> correo.matches(regexPattern))
+                .collect(Collectors.toList());
+
+
         Flux<Correo> listFlux = Flux.fromStream(list.parallelStream()).cache();
         Mono<Map<Integer, Collection<Correo>>> listFilter = listFlux
                 .filter(correo -> correo.email.contains(regexPattern))
-                .distinct()
                 .collectMultimap(Correo::getId);
 
 
-        listFilter.block().forEach((id, correos) ->
+
+
+        listMap.forEach((correos) ->
         {
-            System.out.println("ID: " + id);
-            correos.forEach(correo ->
-            {
-                System.out.println("Correo: " + correo.getEmail());
-            });
+            System.out.println("Correo: " + correos);
         } );
     }
 }
