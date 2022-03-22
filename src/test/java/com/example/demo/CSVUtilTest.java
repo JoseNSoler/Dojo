@@ -72,24 +72,20 @@ public class CSVUtilTest {
     void stream_saberCorreo(){
         List<Correo> list = CsvUtilFile.getPlayers();
 
-        List<String> list2 = list.stream().map(correo -> correo.getEmail().split("@", 1)[0]).collect(Collectors.toList());
-
-        ArrayList<String> listEmail = new ArrayList<String>();
-        listEmail.addAll(list2);
+        List<String> list2 = list.stream().map(correo -> correo.getEmail().split("@", 0)[1]).collect(Collectors.toList());
 
 
-        Map<String, Integer> hm = new HashMap<String, Integer>();
-
-        for (String i : listEmail) {
-            Integer j = hm.get(i);
-            hm.put(i, (j == null) ? 1 : j + 1);
+        for (String dom: list2
+             ) {
+            System.out.println(dom);
         }
 
-        for (Map.Entry<String, Integer> val : hm.entrySet()) {
-            System.out.println("Element " + val.getKey() + " "
-                    + "occurs"
-                    + ": " + val.getValue() + " times");
-        }
+        int occurrencesYahoo = Collections.frequency(list2, "yahoo.com");
+        System.out.println("El correo @yahoo.com se repite " + occurrencesYahoo);
+
+        int occurrencesGoogle = Collections.frequency(list2, "gmail.com");
+        System.out.println("El correo @gmail.com se repite " + occurrencesGoogle);
+
 
     }
 
