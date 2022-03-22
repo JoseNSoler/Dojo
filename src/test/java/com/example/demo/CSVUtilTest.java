@@ -11,106 +11,108 @@ import java.util.stream.Collectors;
 public class CSVUtilTest {
 
     @Test
-    void converterData(){
+    void stream_filtrarCorreosDisticnt(){
         List<Correo> list = CsvUtilFile.getPlayers();
-        assert list.size() == 18207;
-    }
 
-    @Test
-    void stream_filtrarJugadoresMayoresA35(){
-        List<Correo> list = CsvUtilFile.getPlayers();
-        Map<String, List<Correo>> listFilter = list.parallelStream()
-                .filter(correo -> correo.age >= 35)
-                .map(correo -> {
-                    correo.name = correo.name.toUpperCase(Locale.ROOT);
-                    return correo;
-                })
-                .flatMap(correoA -> list.parallelStream()
-                        .filter(correoB -> correoA.club.equals(correoB.club))
-                )
+        Collection<Correo> collection = new ArrayList(new HashSet(list));
+
+        Set<String> areas = new HashSet<>();
+        for(final Correo x: list) {
+            areas.add(x.getEmail());
+        }
+
+        List<String> distinctElements = areas.stream()
                 .distinct()
-                .collect(Collectors.groupingBy(Correo::getClub));
+                .collect(Collectors.toList());
 
-        assert listFilter.size() == 322;
+        System.out.println("Quitar repetidos");
+        distinctElements.forEach(
+                (correo) ->{ System.out.println(correo);}
+        );
+
+        System.out.println(distinctElements.size());
+        assert distinctElements.size() == 9;
+
     }
 
 
     @Test
-    void reactive_filtrarJugadoresMayoresA35(){
+    void stream_filtroPorDominio(){
+
         List<Correo> list = CsvUtilFile.getPlayers();
         Flux<Correo> listFlux = Flux.fromStream(list.parallelStream()).cache();
-        Mono<Map<String, Collection<Correo>>> listFilter = listFlux
-                .filter(correo -> correo.age >= 35)
-                .map(correo -> {
-                    correo.name = correo.name.toUpperCase(Locale.ROOT);
-                    return correo;
-                })
-                .buffer(100)
-                .flatMap(playerA -> listFlux
-                         .filter(correoB -> playerA.stream()
-                                 .anyMatch(a ->  a.club.equals(correoB.club)))
-                )
+        Mono<Map<Integer, Collection<Correo>>> listFilter = listFlux
+                .filter(correo -> correo.email.contains("@gmail"))
                 .distinct()
-                .collectMultimap(Correo::getClub);
+                .collectMultimap(Correo::getId);
 
-        assert listFilter.block().size() == 322;
-    }
 
-    // Test para encontrar jugadores mayores de 34 años pertenecientes a cierto club
-    @Test
-    void reactive_filtrarJugadoresMayoresA34(){
-        List<Correo> list = CsvUtilFile.getPlayers();
-        Flux<Correo> listFlux = Flux.fromStream(list.parallelStream()).cache();
-
-        Mono<Map<String, Collection<Correo>>> listFilter = listFlux
-                .filter(correo -> correo.club.equals("Athletic Club de Bilbao") && correo.getAge() >= 34)
-                .distinct()
-                .collectMultimap(Correo::getClub);
-
-        System.out.println(listFilter.block().size());
-
-        listFilter.block().forEach((equipo, players) -> {
-            players.forEach(correo -> {
-                System.out.println("Nombre: " + correo.getName() + "\nEdad: " + correo.getAge() + " años" +"\nClub: " + correo.getClub());
-                assert correo.club.equals("Athletic Club de Bilbao");
-
-                Assertions.assertEquals(37, correo.getAge());
+        System.out.println("Filtrar por dominio @gmail");
+        listFilter.block().forEach((id, correos) ->
+        {
+            System.out.println("ID: " + id);
+            correos.forEach(correo ->
+            {
+                System.out.println("Correo: " + correo.getEmail());
             });
-        });
+        } );
 
     }
 
-    //
     @Test
-    void reactive_filtrarPorNacionYFiltrarRanked() {
+    void stream_saberTamaño(){
         List<Correo> list = CsvUtilFile.getPlayers();
-        Flux<Correo> listFlux = Flux.fromStream(list.parallelStream()).cache();
-        Mono<Map<String, Collection<Correo>>> listFilter = listFlux
-                .buffer(100)
-                .flatMap(player1 -> listFlux
-                        .filter(correo2 -> player1.stream()
-                                .anyMatch(a -> a.getNational().equals(correo2.getNational())))
-                ).distinct()
-                .sort((k, correo) -> correo.getWinners())
-                .collectMultimap(Correo::getNational);
 
-        System.out.println("Filtro Por naciones: ");
-        System.out.println(listFilter.block().size());
-        listFilter.block().forEach((pais, players) -> {
-            System.out.println("Pais: " + pais + "\n{");
-            players.forEach(correo -> {
-                System.out.println("- Nombre: " + correo.getName() +
-                        "\n- victorias: " + correo.getWinners() + "\n- Club: " + correo.getClub());
-            });
-            System.out.println("}");
-        });
+        Integer mapCorreos = list.stream().map(correo -> correo).collect(Collectors.toList()).size();
+
+        System.out.println(mapCorreos);
+    }
+
+    @Test
+    void stream_saberCorreo(){
+        List<Correo> list = CsvUtilFile.getPlayers();
+
+        List<String> list2 = list.stream().map(correo -> correo.getEmail().split("@", 0)[1]).collect(Collectors.toList());
+
+
+        for (String dom: list2
+             ) {
+            System.out.println(dom);
+        }
+
+        int occurrencesYahoo = Collections.frequency(list2, "yahoo.com");
+        System.out.println("El correo @yahoo.com se repite " + occurrencesYahoo);
+
+        int occurrencesGoogle = Collections.frequency(list2, "gmail.com");
+        System.out.println("El correo @gmail.com se repite " + occurrencesGoogle);
+
+
     }
 
 
+    @Test
+    void stream_contieneArrobaDominio(){
+        String regexPattern = "^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@"
+                + "[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$";
+
+
+        List<Correo> list = CsvUtilFile.getPlayers();
+
+        List<String> listMap = list.stream().map(correo -> correo.getEmail()).filter(correo -> correo.matches(regexPattern))
+                .collect(Collectors.toList());
+
+
+        Flux<Correo> listFlux = Flux.fromStream(list.parallelStream()).cache();
+        Mono<Map<Integer, Collection<Correo>>> listFilter = listFlux
+                .filter(correo -> correo.email.contains(regexPattern))
+                .collectMultimap(Correo::getId);
 
 
 
 
-
-
+        listMap.forEach((correos) ->
+        {
+            System.out.println("Correo: " + correos);
+        } );
+    }
 }
